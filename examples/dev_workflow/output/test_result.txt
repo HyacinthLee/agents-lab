@@ -1,0 +1,102 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.0.2, pluggy-1.6.0 -- /usr/bin/python3
+cachedir: .pytest_cache
+benchmark: 5.2.3 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)
+rootdir: /root/.openclaw/workspace/acf-v2
+configfile: pyproject.toml
+plugins: asyncio-1.3.0, benchmark-5.2.3, langsmith-0.7.11, anyio-4.12.1
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 54 items
+
+test_cases_20260311_094253.py::TestParseArgs::test_valid_addition_args PASSED [  1%]
+test_cases_20260311_094253.py::TestParseArgs::test_valid_subtraction_args PASSED [  3%]
+test_cases_20260311_094253.py::TestParseArgs::test_valid_multiplication_args PASSED [  5%]
+test_cases_20260311_094253.py::TestParseArgs::test_valid_division_args PASSED [  7%]
+test_cases_20260311_094253.py::TestParseArgs::test_negative_number_args PASSED [  9%]
+test_cases_20260311_094253.py::TestParseArgs::test_zero_value_args PASSED [ 11%]
+test_cases_20260311_094253.py::TestParseArgs::test_large_number_args PASSED [ 12%]
+test_cases_20260311_094253.py::TestParseArgs::test_insufficient_args PASSED [ 14%]
+test_cases_20260311_094253.py::TestParseArgs::test_invalid_number_format PASSED [ 16%]
+test_cases_20260311_094253.py::TestParseArgs::test_mixed_invalid_number PASSED [ 18%]
+test_cases_20260311_094253.py::TestValidate::test_valid_addition PASSED  [ 20%]
+test_cases_20260311_094253.py::TestValidate::test_valid_subtraction PASSED [ 22%]
+test_cases_20260311_094253.py::TestValidate::test_valid_multiplication PASSED [ 24%]
+test_cases_20260311_094253.py::TestValidate::test_valid_division PASSED  [ 25%]
+test_cases_20260311_094253.py::TestValidate::test_invalid_operator PASSED [ 27%]
+test_cases_20260311_094253.py::TestValidate::test_division_by_zero PASSED [ 29%]
+test_cases_20260311_094253.py::TestValidate::test_division_by_zero_with_nonzero_first PASSED [ 31%]
+test_cases_20260311_094253.py::TestValidate::test_empty_operands PASSED  [ 33%]
+test_cases_20260311_094253.py::TestValidate::test_single_operand PASSED  [ 35%]
+test_cases_20260311_094253.py::TestCalculate::test_addition PASSED       [ 37%]
+test_cases_20260311_094253.py::TestCalculate::test_subtraction PASSED    [ 38%]
+test_cases_20260311_094253.py::TestCalculate::test_multiplication PASSED [ 40%]
+test_cases_20260311_094253.py::TestCalculate::test_division PASSED       [ 42%]
+test_cases_20260311_094253.py::TestCalculate::test_negative_addition PASSED [ 44%]
+test_cases_20260311_094253.py::TestCalculate::test_zero_addition PASSED  [ 46%]
+test_cases_20260311_094253.py::TestCalculate::test_large_number_multiplication PASSED [ 48%]
+test_cases_20260311_094253.py::TestCalculate::test_division_precision PASSED [ 50%]
+test_cases_20260311_094253.py::TestCalculate::test_mixed_negative_positive PASSED [ 51%]
+test_cases_20260311_094253.py::TestCalculate::test_subtraction_negative_result PASSED [ 53%]
+test_cases_20260311_094253.py::TestCalculate::test_invalid_operator_returns_zero PASSED [ 55%]
+test_cases_20260311_094253.py::TestFormatResult::test_integer_result PASSED [ 57%]
+test_cases_20260311_094253.py::TestFormatResult::test_decimal_result PASSED [ 59%]
+test_cases_20260311_094253.py::TestFormatResult::test_rounding_up PASSED [ 61%]
+test_cases_20260311_094253.py::TestFormatResult::test_rounding_down PASSED [ 62%]
+test_cases_20260311_094253.py::TestFormatResult::test_negative_result PASSED [ 64%]
+test_cases_20260311_094253.py::TestFormatResult::test_zero_result PASSED [ 66%]
+test_cases_20260311_094253.py::TestFormatResult::test_large_number_formatting FAILED [ 68%]
+test_cases_20260311_094253.py::TestPrintUsage::test_print_usage_output PASSED [ 70%]
+test_cases_20260311_094253.py::TestMain::test_main_addition_success PASSED [ 72%]
+test_cases_20260311_094253.py::TestMain::test_main_subtraction_success PASSED [ 74%]
+test_cases_20260311_094253.py::TestMain::test_main_multiplication_success PASSED [ 75%]
+test_cases_20260311_094253.py::TestMain::test_main_division_success PASSED [ 77%]
+test_cases_20260311_094253.py::TestMain::test_main_division_by_zero PASSED [ 79%]
+test_cases_20260311_094253.py::TestMain::test_main_invalid_input_letters PASSED [ 81%]
+test_cases_20260311_094253.py::TestMain::test_main_invalid_operator PASSED [ 83%]
+test_cases_20260311_094253.py::TestMain::test_main_negative_numbers PASSED [ 85%]
+test_cases_20260311_094253.py::TestMain::test_main_division_precision PASSED [ 87%]
+test_cases_20260311_094253.py::TestMain::test_main_rounding PASSED       [ 88%]
+test_cases_20260311_094253.py::TestMain::test_main_zero_value PASSED     [ 90%]
+test_cases_20260311_094253.py::TestMain::test_main_large_numbers FAILED  [ 92%]
+test_cases_20260311_094253.py::TestMain::test_main_insufficient_args PASSED [ 94%]
+test_cases_20260311_094253.py::TestMain::test_main_no_args PASSED        [ 96%]
+test_cases_20260311_094253.py::TestMain::test_main_only_two_args PASSED  [ 98%]
+test_cases_20260311_094253.py::TestMain::test_main_decimal_input PASSED  [100%]
+
+=================================== FAILURES ===================================
+________________ TestFormatResult.test_large_number_formatting _________________
+
+self = <test_cases_20260311_094253.TestFormatResult object at 0x73d65f3b07a0>
+
+    def test_large_number_formatting(self):
+        """大数格式化"""
+        result = format_result(999999998000000001.0)
+>       assert result == "999999998000000001.000000"
+E       AssertionError: assert '999999998000000000.000000' == '999999998000000001.000000'
+E         
+E         - 999999998000000001.000000
+E         ?                  ^
+E         + 999999998000000000.000000
+E         ?                  ^
+
+test_cases_20260311_094253.py:241: AssertionError
+_______________________ TestMain.test_main_large_numbers _______________________
+
+self = <test_cases_20260311_094253.TestMain object at 0x73d65f3b2540>
+capsys = <_pytest.capture.CaptureFixture object at 0x73d65f3b20f0>
+
+    def test_main_large_numbers(self, capsys):
+        """TC14: 主函数大数运算"""
+        with patch.object(sys, 'argv', ['calc', '999999999', '*', '999999999']):
+            result = main()
+            captured = capsys.readouterr()
+            assert result == 0
+>           assert "999999998000000001.000000" in captured.out
+E           AssertionError: assert '999999998000000001.000000' in '999999998000000000.000000\n'
+E            +  where '999999998000000000.000000\n' = CaptureResult(out='999999998000000000.000000\n', err='').out
+
+test_cases_20260311_094253.py:352: AssertionError
+=========================== short test summary info ============================
+FAILED test_cases_20260311_094253.py::TestFormatResult::test_large_number_formatting
+FAILED test_cases_20260311_094253.py::TestMain::test_main_large_numbers - Ass...
+========================= 2 failed, 52 passed in 0.07s =========================

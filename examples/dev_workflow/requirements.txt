@@ -1,0 +1,21 @@
+# 软件研发流程多 Agent 系统 - ACF-v2 版依赖
+
+# 核心框架
+langgraph>=0.2.0
+
+# ACF-v2 框架
+# 路径: /root/.openclaw/workspace/acf-v2/src
+# 确保 PYTHONPATH 包含该路径
+
+# SharedBoard 依赖（可选，SimpleSharedBoard 无额外依赖）
+# langgraph[store]>=0.2.0  # 如需使用语义搜索功能
+
+# 测试执行
+pytest>=7.0.0
+
+# 其他依赖
+# 无额外依赖，使用 Python 标准库
+
+# 系统依赖（需手动安装）
+# - tmux
+# - Claude Code CLI (claude)

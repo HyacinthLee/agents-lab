@@ -1,0 +1,36 @@
+{
+  "base_dir": "/root/.openclaw/workspace/acf-v2/examples/real_agents",
+  "agents_dir": "/root/.openclaw/workspace/acf-v2/examples/real_agents/agents",
+  "shared_dir": "/root/.openclaw/workspace/acf-v2/examples/real_agents/shared",
+  "agents": {
+    "code_reviewer": {
+      "path": "/root/.openclaw/workspace/acf-v2/examples/real_agents/agents/code_reviewer",
+      "workspace_files": [],
+      "skills_count": 2
+    },
+    "product_manager": {
+      "path": "/root/.openclaw/workspace/acf-v2/examples/real_agents/agents/product_manager",
+      "workspace_files": [],
+      "skills_count": 2
+    },
+    "developer": {
+      "path": "/root/.openclaw/workspace/acf-v2/examples/real_agents/agents/developer",
+      "workspace_files": [],
+      "skills_count": 2
+    }
+  },
+  "shared": {
+    "deliverables": {
+      "path": "/root/.openclaw/workspace/acf-v2/examples/real_agents/shared/deliverables",
+      "files": []
+    },
+    "decisions": {
+      "path": "/root/.openclaw/workspace/acf-v2/examples/real_agents/shared/decisions",
+      "files": []
+    },
+    "lessons": {
+      "path": "/root/.openclaw/workspace/acf-v2/examples/real_agents/shared/lessons",
+      "files": []
+    }
+  }
+}

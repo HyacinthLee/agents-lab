@@ -93,6 +93,42 @@ claude = AdapterFactory.create(
 result = await claude.execute("Create a Python calculator")
 ```
 
+## 🚀 核心示例：dev_workflow_v2
+
+**路径**: `examples/dev_workflow/dev_workflow_v2.py`
+
+完整的软件研发流程多 Agent 系统，从需求到部署的 5 阶段工作流：
+
+```
+产品 Agent → 架构师 Agent → 开发 Agent → 测试 Agent → 运维 Agent
+   (PRD)        (规格说明书)      (代码)      (测试用例+执行)   (部署脚本)
+```
+
+**特性**:
+- ✅ 基于 LangGraph + ACF 框架
+- ✅ 基于 Claude Code 真实执行
+- ✅ AGENT.md + Skills 动态提示词
+- ✅ 自动修复测试用例导入
+- ✅ 自动清理历史交付物
+- ✅ **测试首次通过**（2026-03-11）
+
+**运行**:
+```bash
+cd examples/dev_workflow
+python3 dev_workflow_v2.py
+```
+
+**输出示例**:
+```
+📋 【产品 Agent】... ✅ (38.2s, 403字符)
+🏗️  【架构师 Agent】... ✅ (38.2s, 1104字符)
+💻 【开发 Agent】... ✅ (38.2s, 2685字符)
+🧪 【测试 Agent】... ✅ 测试通过
+🚀 【运维 Agent】... ✅ (94.4s, 7089字符)
+```
+
+详见 [REFACTOR_SUMMARY.md](REFACTOR_SUMMARY.md) 了解完整重构历程。
+
 ## 📚 使用案例
 
 ### 案例 1：内容生成流水线
@@ -255,6 +291,44 @@ result = await runner.run("Input", checkpoint_id="cp_123")
 
 # 取消
 runner.cancel()
+```
+
+## 📁 项目结构
+
+```
+acf-v2/
+├── src/acf/                    # 核心框架
+│   ├── adapter/                # Agent 适配层
+│   │   ├── base.py            # AgentAdapter 基类
+│   │   ├── claude.py          # Claude Code 适配器
+│   │   ├── kimi.py            # kimi API 适配器
+│   │   ├── mock.py            # Mock 适配器
+│   │   └── factory.py         # 适配器工厂
+│   ├── agent/                  # Agent 管理
+│   │   ├── agent_template.py  # AGENT.md 模板生成
+│   │   └── workspace_manager.py # 工作空间管理
+│   ├── skills/                 # 技能系统
+│   │   └── skill_manager.py   # 技能加载与管理
+│   ├── store/                  # 存储层
+│   │   └── shared_board.py    # 共享白板 (BaseStore)
+│   └── workflow/               # 工作流系统
+│       ├── builder.py         # WorkflowBuilder
+│       ├── runner.py          # WorkflowRunner
+│       ├── nodes.py           # AgentNode, ConditionalNode
+│       └── state.py           # AgentState, Checkpoint
+├── tests/                      # 测试套件
+│   ├── agent/                 # Agent 管理测试
+│   ├── skills/                # 技能系统测试
+│   ├── store/                 # 存储层测试
+│   └── test_*.py              # 核心模块测试
+├── examples/                   # 使用示例
+│   ├── basic_usage.py         # 基础用法
+│   ├── workflow_example.py    # 工作流示例
+│   ├── real_agents/           # Real Agent 完整示例
+│   └── dev_workflow/          # 软件研发流程示例
+└── docs/                       # 文档
+    ├── DESIGN.md              # 设计文档
+    └── blog/                  # 技术博客
 ```
 
 ## 🧪 测试

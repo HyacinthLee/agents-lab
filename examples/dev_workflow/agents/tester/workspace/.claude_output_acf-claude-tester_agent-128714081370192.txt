@@ -1,0 +1,418 @@
+我已生成测试用例代码。以下是完整的 pytest 测试文件：
+
+```python
+"""
+ACF (Agent Collaboration Framework) 测试用例
+基于测试计划生成的 pytest 测试
+"""
+
+import pytest
+import asyncio
+from typing import Dict, Any, Callable, Optional
+from dataclasses import dataclass, field
+from enum import Enum
+
+
+# ==================== 被测代码 (模拟实现) ====================
+
+class AgentStatus(Enum):
+    CREATED = "created"
+    RUNNING = "running"
+    STOPPED = "stopped"
+
+
+class ACFError(Exception):
+    """ACF 基础异常"""
+    pass
+
+
+class AgentExistsError(ACFError):
+    """代理已存在异常"""
+    pass
+
+
+class AgentNotFoundError(ACFError):
+    """代理不存在异常"""
+    pass
+
+
+class SkillNotFoundError(ACFError):
+    """技能不存在异常"""
+    pass
+
+
+class MessageError(ACFError):
+    """消息错误异常"""
+    pass
+
+
+@dataclass
+class Message:
+    sender: str
+    recipient: str
+    content: str
+    timestamp: float = field(default_factory=lambda: asyncio.get_event_loop().time())
+
+
+@dataclass
+class Task:
+    task_id: str
+    coro: Any
+    timeout: Optional[float] = None
+
+
+class Agent:
+    """代理类"""
+
+    def __init__(self, name: str, config: Dict[str, Any] = None):
+        self.name = name
+        self.config = config or {}
+        self.status = AgentStatus.CREATED
+        self.skills: Dict[str, Callable] = {}
+        self.message_queue: asyncio.Queue = asyncio.Queue()
+        self._task: Optional[asyncio.Task] = None
+
+    async def start(self):
+        """启动代理"""
+        if self.status == AgentStatus.RUNNING:
+            return False  # 已运行，返回 False 表示无需操作
+        self.status = AgentStatus.RUNNING
+        self._task = asyncio.create_task(self._run())
+        return True
+
+    async def stop(self):
+        """停止代理"""
+        if self.status != AgentStatus.RUNNING:
+            return
+        self.status = AgentStatus.STOPPED
+        if self._task:
+            self._task.cancel()
+            try:
+                await self._task
+            except asyncio.CancelledError:
+                pass
+
+    async def _run(self):
+        """代理主循环"""
+        while self.status == AgentStatus.RUNNING:
+            try:
+                await asyncio.sleep(0.1)
+            except asyncio.CancelledError:
+                break
+
+    def register_skill(self, name: str, handler: Callable):
+        """注册技能"""
+        self.skills[name] = handler
+
+    async def call_skill(self, name: str, **kwargs) -> Any:
+        """调用技能"""
+        if name not in self.skills:
+            raise SkillNotFoundError(f"Skill '{name}' not found")
+        return await self.skills[name](**kwargs) if asyncio.iscoroutinefunction(self.skills[name]) else self.skills[name](**kwargs)
+
+    async def send_message(self, message: Message):
+        """接收消息"""
+        await self.message_queue.put(message)
+
+
+class AgentManager:
+    """代理管理器"""
+
+    def __init__(self):
+        self.agents: Dict[str, Agent] = {}
+        self.message_router: Dict[str, str] = {}
+
+    def create_agent(self, name: str, config: Dict[str, Any] = None) -> Agent:
+        """创建代理"""
+        if name in self.agents:
+            raise AgentExistsError(f"Agent '{name}' already exists")
+        agent = Agent(name, config)
+        self.agents[name] = agent
+        return agent
+
+    def get_agent(self, name: str) -> Optional[Agent]:
+        """获取代理"""
+        return self.agents.get(name)
+
+    async def send_message(self, sender: str, recipient: str, content: str):
+        """发送消息"""
+        if not content:
+            raise MessageError("Message content cannot be empty")
+        if recipient not in self.agents:
+            raise AgentNotFoundError(f"Recipient agent '{recipient}' not found")
+
+        message = Message(sender=sender, recipient=recipient, content=content)
+        await self.agents[recipient].send_message(message)
+        return message
+
+
+class TaskScheduler:
+    """任务调度器"""
+
+    def __init__(self):
+        self.tasks: Dict[str, asyncio.Task] = {}
+
+    async def submit(self, task_id: str, coro, timeout: Optional[float] = None) -> Any:
+        """提交异步任务"""
+        try:
+            if timeout:
+                result = await asyncio.wait_for(coro, timeout=timeout)
+            else:
+                result = await coro
+            return result
+        except asyncio.TimeoutError:
+            raise ACFError(f"Task '{task_id}' timed out after {timeout}s")
+
+
+# ==================== 测试固件 ====================
+
+@pytest.fixture
+def agent_manager():
+    """代理管理器固件"""
+    return AgentManager()
+
+
+@pytest.fixture
+def task_scheduler():
+    """任务调度器固件"""
+    return TaskScheduler()
+
+
+@pytest.fixture
+def sample_agent(agent_manager):
+    """示例代理固件"""
+    return agent_manager.create_agent("test_agent", {"role": "tester"})
+
+
+# ==================== 测试用例 ====================
+
+class TestAgentLifecycle:
+    """代理生命周期管理测试 - 5个用例"""
+
+    @pytest.mark.asyncio
+    async def test_create_agent_success(self, agent_manager):
+        """TC-001: 验证使用有效配置创建代理成功"""
+        config = {"role": "worker", "priority": 1}
+        agent = agent_manager.create_agent("worker_1", config)
+
+        assert agent is not None
+        assert agent.name == "worker_1"
+        assert agent.config == config
+        assert agent.status == AgentStatus.CREATED
+        assert "worker_1" in agent_manager.agents
+
+    @pytest.mark.asyncio
+    async def test_start_agent_success(self, agent_manager):
+        """TC-002: 验证代理正常启动并进入运行状态"""
+        agent = agent_manager.create_agent("runner")
+        result = await agent.start()
+
+        assert result is True
+        assert agent.status == AgentStatus.RUNNING
+
+        await agent.stop()
+
+    @pytest.mark.asyncio
+    async def test_stop_agent_success(self, agent_manager):
+        """TC-003: 验证代理正常停止并释放资源"""
+        agent = agent_manager.create_agent("stoppable")
+        await agent.start()
+        assert agent.status == AgentStatus.RUNNING
+
+        await agent.stop()
+
+        assert agent.status == AgentStatus.STOPPED
+
+    @pytest.mark.asyncio
+    async def test_create_duplicate_agent_fails(self, agent_manager):
+        """TC-004: 验证创建同名代理时抛出异常"""
+        agent_manager.create_agent("unique_agent")
+
+        with pytest.raises(AgentExistsError) as exc_info:
+            agent_manager.create_agent("unique_agent")
+
+        assert "already exists" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_start_running_agent_returns_false(self, agent_manager):
+        """TC-005: 验证启动已运行代理时返回 False"""
+        agent = agent_manager.create_agent("already_running")
+        result1 = await agent.start()
+        result2 = await agent.start()
+
+        assert result1 is True
+        assert result2 is False  # 已运行，返回 False
+
+        await agent.stop()
+
+
+class TestMessageSystem:
+    """消息传递系统测试 - 4个用例"""
+
+    @pytest.mark.asyncio
+    async def test_send_text_message_success(self, agent_manager):
+        """TC-006: 验证代理间发送文本消息成功"""
+        sender = agent_manager.create_agent("sender")
+        receiver = agent_manager.create_agent("receiver")
+        await receiver.start()
+
+        message = await agent_manager.send_message("sender", "receiver", "Hello!")
+
+        assert message.content == "Hello!"
+        assert message.sender == "sender"
+        assert message.recipient == "receiver"
+
+        await receiver.stop()
+
+    @pytest.mark.asyncio
+    async def test_message_routing(self, agent_manager):
+        """TC-007: 验证消息正确路由到目标代理"""
+        agent1 = agent_manager.create_agent("agent1")
+        agent2 = agent_manager.create_agent("agent2")
+        await agent1.start()
+        await agent2.start()
+
+        await agent_manager.send_message("sender", "agent1", "Message for agent1")
+        await agent_manager.send_message("sender", "agent2", "Message for agent2")
+
+        msg1 = await asyncio.wait_for(agent1.message_queue.get(), timeout=1.0)
+        msg2 = await asyncio.wait_for(agent2.message_queue.get(), timeout=1.0)
+
+        assert msg1.content == "Message for agent1"
+        assert msg2.content == "Message for agent2"
+
+        await agent1.stop()
+        await agent2.stop()
+
+    @pytest.mark.asyncio
+    async def test_send_empty_message_fails(self, agent_manager):
+        """TC-008: 验证发送空消息时抛出异常"""
+        agent = agent_manager.create_agent("empty_test")
+
+        with pytest.raises(MessageError) as exc_info:
+            await agent_manager.send_message("sender", "empty_test", "")
+
+        assert "cannot be empty" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_send_to_nonexistent_agent_fails(self, agent_manager):
+        """TC-009: 验证发送给不存在代理时返回错误"""
+        with pytest.raises(AgentNotFoundError) as exc_info:
+            await agent_manager.send_message("sender", "nonexistent", "Hello")
+
+        assert "not found" in str(exc_info.value)
+
+
+class TestSkillSystem:
+    """技能注册与调用测试 - 4个用例"""
+
+    @pytest.mark.asyncio
+    async def test_register_skill_success(self, sample_agent):
+        """TC-010: 验证技能成功注册到代理"""
+        def sample_skill():
+            return "skill result"
+
+        sample_agent.register_skill("sample", sample_skill)
+
+        assert "sample" in sample_agent.skills
+        assert sample_agent.skills["sample"] == sample_skill
+
+    @pytest.mark.asyncio
+    async def test_call_registered_skill_success(self, sample_agent):
+        """TC-011: 验证成功调用已注册的技能"""
+        async def async_skill(name: str):
+            return f"Hello, {name}!"
+
+        sample_agent.register_skill("greet", async_skill)
+        result = await sample_agent.call_skill("greet", name="World")
+
+        assert result == "Hello, World!"
+
+    @pytest.mark.asyncio
+    async def test_call_unregistered_skill_fails(self, sample_agent):
+        """TC-012: 验证调用未注册技能时返回错误"""
+        with pytest.raises(SkillNotFoundError) as exc_info:
+            await sample_agent.call_skill("unknown_skill")
+
+        assert "not found" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_skill_parameter_boundary(self, sample_agent):
+        """TC-013: 验证技能参数在边界值时正确处理"""
+        def process_data(data: str, count: int):
+            if count < 0:
+                raise ValueError("Count must be non-negative")
+            return data * count
+
+        sample_agent.register_skill("process", process_data)
+
+        # 边界值: count = 0
+        result = await sample_agent.call_skill("process", data="x", count=0)
+        assert result == ""
+
+        # 边界值: count = 1
+        result = await sample_agent.call_skill("process", data="x", count=1)
+        assert result == "x"
+
+        # 大数值
+        result = await sample_agent.call_skill("process", data="ab", count=1000)
+        assert len(result) == 2000
+
+
+class TestTaskScheduler:
+    """任务调度测试 - 2个用例"""
+
+    @pytest.mark.asyncio
+    async def test_submit_async_task_success(self, task_scheduler):
+        """TC-014: 验证异步任务提交成功"""
+        async def sample_task():
+            await asyncio.sleep(0.01)
+            return "task completed"
+
+        result = await task_scheduler.submit("task_1", sample_task())
+
+        assert result == "task completed"
+
+    @pytest.mark.asyncio
+    async def test_test_task_timeout_handling(self, task_scheduler):
+        """TC-015: 验证任务超时后正确处理"""
+        async def slow_task():
+            await asyncio.sleep(10)
+            return "should not reach here"
+
+        with pytest.raises(ACFError) as exc_info:
+            await task_scheduler.submit("slow_task", slow_task(), timeout=0.1)
+
+        assert "timed out" in str(exc_info.value)
+
+
+if __name__ == "__main__":
+    pytest.main([__file__, "-v"])
+```
+
+## 测试用例统计
+
+| 模块 | 用例数 | 覆盖场景 |
+|------|--------|----------|
+| 代理生命周期管理 | 5 | 创建、启动、停止、异常处理 |
+| 消息传递系统 | 4 | 发送消息、路由、异常场景 |
+| 技能注册与调用 | 4 | 注册、调用、参数边界 |
+| 任务调度 | 2 | 异步任务、超时处理 |
+| **总计** | **15** | - |
+
+## 运行方式
+
+```bash
+# 安装 pytest-asyncio
+pip install pytest-asyncio
+
+# 运行测试
+pytest test_acf.py -v
+```
+
+测试代码特点：
+1. **包含被测代码模拟实现** - 文件自包含，可直接执行
+2. **使用 pytest-asyncio** - 支持异步测试
+3. **固件复用** - 使用 pytest fixture 减少重复代码
+4. **异常验证** - 使用 `pytest.raises` 验证异常场景
+5. **边界测试** - 包含参数边界值测试

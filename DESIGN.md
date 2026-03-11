@@ -49,6 +49,28 @@ Include Demo declarations to control complexity and cost during development.
 │  │  └──────────┘  └──────────┘  └──────────┘          │  │
 │  └──────────────────────────────────────────────────────┘  │
 │                                                              │
+│  ┌──────────────────────────────────────────────────────┐  │
+│  │              Agent Management                        │  │
+│  │  ┌──────────┐  ┌──────────┐  ┌──────────┐          │  │
+│  │  │ Template │  │ Workspace│  │  Config  │          │  │
+│  │  └──────────┘  └──────────┘  └──────────┘          │  │
+│  └──────────────────────────────────────────────────────┘  │
+│                                                              │
+│  ┌──────────────────────────────────────────────────────┐  │
+│  │              Skills System                           │  │
+│  │  ┌──────────┐  ┌──────────┐                          │  │
+│  │  │  Skill   │  │  Manager │                          │  │
+│  │  └──────────┘  └──────────┘                          │  │
+│  └──────────────────────────────────────────────────────┘  │
+│                                                              │
+│  ┌──────────────────────────────────────────────────────┐  │
+│  │              Storage Layer                           │  │
+│  │  ┌──────────┐  ┌──────────┐                          │  │
+│  │  │  Shared  │  │  Board   │                          │  │
+│  │  │  Board   │  │  Entry   │                          │  │
+│  │  └──────────┘  └──────────┘                          │  │
+│  └──────────────────────────────────────────────────────┘  │
+│                                                              │
 └─────────────────────────────────────────────────────────────┘
                               │
                               ▼
@@ -63,7 +85,201 @@ Include Demo declarations to control complexity and cost during development.
 
 ## Core Components
 
-### AgentAdapter (Abstract Base)
+### 1. AGENT.md - Agent Configuration
+
+**Framework generates template → User manually customizes**
+
+```python
+from acf.agent import AgentTemplate
+
+# Framework generates template
+AgentTemplate.generate(
+    role="Product Manager", 
+    workspace="./agents/pm"
+)
+# Creates:
+# ./agents/pm/AGENT.md  (template)
+# ./agents/pm/skills/   (empty directory)
+# ./agents/pm/workspace/ (empty directory)
+```
+
+**Generated AGENT.md Template**:
+```markdown
+# Product Manager
+
+## Identity
+你是产品经理，负责将用户需求转化为产品需求文档。
+
+## ⚠️ Demo Declaration
+- ✅ 简单设计，核心功能即可
+- ✅ PRD 控制在 500 字以内
+- ❌ 不需要市场分析、竞品调研
+
+## Responsibilities
+- 分析用户需求
+- 编写 PRD 文档
+- 定义验收标准
+
+## Constraints
+- 不写代码实现细节
+- 不指定技术栈
+
+## Skills
+- @write-prd
+- @analyze-requirements
+```
+
+**User Customization**: Edit the generated AGENT.md to refine behavior.
+
+---
+
+### 2. Skill System - Agent-Decided Usage
+
+**Location**: `agents/{name}/skills/*.md`
+
+**Skill Format**:
+```markdown
+---
+name: write-prd
+description: 编写产品需求文档
+---
+
+## When to Use
+当需要为新功能编写 PRD 时使用
+
+## Input
+- feature_name: 功能名称
+- target_users: 目标用户
+
+## Output
+- PRD 文档 (Markdown)
+
+## Steps
+1. 理解功能背景
+2. 编写产品概述
+3. 列出功能列表
+4. 定义验收标准
+```
+
+**Usage Modes**:
+
+| Mode | How | When |
+|------|-----|------|
+| **Autonomous** (Default) | Agent decides which skill to use | `builder.add_node("pm", adapter)` |
+| **Enforced** | Workflow forces specific skill | `builder.add_node("pm", adapter, skill="write-prd")` |
+| **Prompt** | AGENT.md mentions skill trigger | "When user says 'analyze', use @analyze" |
+
+**Implementation**:
+```python
+# Agent loads skills and formats for prompt
+skills = adapter.load_skills()  # From skills/ directory
+system_prompt = f"""
+{agent_config}  # AGENT.md content
+
+## Available Skills
+{format_skills(skills)}  # @skill_name: description
+
+Use appropriate skills based on the task.
+"""
+```
+
+---
+
+### 3. Shared Whiteboard - Agent Communication
+
+**Pattern**: Pull-based shared state using LangGraph BaseStore
+
+```
+┌─────────┐     ┌─────────┐     ┌─────────┐
+│ Agent A │     │ Agent B │     │ Agent C │
+└────┬────┘     └────┬────┘     └────┬────┘
+     │               │               │
+     └───────────────┼───────────────┘
+                     ▼ Pull mode
+            ┌─────────────────┐
+            │  Shared Board   │
+            │  (BaseStore)    │
+            │                 │
+            │ - Deliverables  │  # PRD, Code, Reports
+            │ - Decisions     │  # Key decisions
+            │ - Lessons       │  # Learned experiences
+            └─────────────────┘
+```
+
+**Data Flow - Dual Write Pattern**:
+```
+Workflow State (LangGraph)          Shared Whiteboard (BaseStore)
+        │                                   │
+        ▼                                   ▼
+┌───────────────┐                 ┌─────────────────────┐
+│ State Passing │  (immediate)    │ Long-term Storage   │  (async)
+│ - prd_file    │ ───────────────▶│ namespace=("team",) │
+│ - code_file   │                 │ - semantic search   │
+│ - test_report │                 │ - cross-workflow    │
+└───────────────┘                 └─────────────────────┘
+```
+
+**Implementation**:
+```python
+class AgentNode:
+    def execute(self, state: AgentState) -> AgentState:
+        # 1. Read from shared board (pull)
+        shared = self.store.search(
+            namespace=("team", "deliverables"),
+            query=state["requirement"]
+        )
+        
+        # 2. Execute with shared context
+        result = self.adapter.execute(task, context=shared)
+        
+        # 3. Write to workflow state (next agent)
+        state["output"] = result.output
+        
+        # 4. Write to shared board (long-term)
+        self.store.put(
+            namespace=("team", "deliverables"),
+            key=f"{self.name}-{workflow_id}",
+            value={"content": result.output, "author": self.name},
+            index=["content"]  # Enable semantic search
+        )
+        
+        return state
+```
+
+---
+
+### 4. Workspace Structure
+
+```
+project/
+├── agents/
+│   ├── agent-a/
+│   │   ├── AGENT.md          # Role definition (user edited)
+│   │   ├── skills/           # Private skills
+│   │   │   └── skill1.md
+│   │   └── workspace/        # Private workspace (rw)
+│   │       └── outputs...
+│   └── agent-b/
+│       ├── AGENT.md
+│       ├── skills/
+│       └── workspace/
+└── shared/                   # Shared space (rw for all)
+    ├── deliverables/         # Cross-agent deliverables
+    ├── decisions/            # Key decisions
+    └── lessons/              # Learned lessons
+```
+
+**Access Rules**:
+| Location | Read | Write | Purpose |
+|----------|------|-------|---------|
+| `agents/{name}/workspace/` | Self | Self | Private outputs |
+| `agents/{name}/skills/` | Self | Self | Private skills |
+| `shared/` | All | All | Cross-agent sharing |
+| `shared/deliverables/` | All | All | Deliverables |
+
+---
+
+### 5. AgentAdapter Interface
 
 ```python
 class AgentAdapter(ABC):
@@ -82,29 +298,29 @@ class AgentAdapter(ABC):
 - Generic kwargs for backend-specific parameters
 - Context manager support for resource cleanup
 
-### WorkflowBuilder
+---
 
-Wraps LangGraph's StateGraph with ACF-specific features:
-- Agent node wrapping
-- YAML configuration support (planned)
-- Validation and error handling
+### 6. WorkflowBuilder
 
 ```python
 builder = WorkflowBuilder("my_workflow")
+
+# Agent with autonomous skill selection
 builder.add_node("agent1", adapter1)
-builder.add_node("agent2", adapter2)
+
+# Agent with enforced skill
+builder.add_node("agent2", adapter2, skill="write-prd")
+
+# Edges
 builder.add_edge("agent1", "agent2")
 builder.add_conditional_edges("agent1", condition_fn, path_map)
+
 graph = builder.compile()
 ```
 
-### WorkflowRunner
+---
 
-High-level execution interface:
-- Event callbacks for monitoring
-- Checkpoint save/load
-- Sync/async execution modes
-- Cancellation support
+### 7. WorkflowRunner
 
 ```python
 runner = WorkflowRunner(graph)
@@ -128,18 +344,7 @@ class AgentState(TypedDict, total=False):
     memory: Dict[str, Any]
 ```
 
-**Rationale**:
-- TypedDict provides type safety
-- `total=False` allows flexible state evolution
-- Standard fields support common use cases
-
 ### Checkpoint System
-
-Checkpoints enable:
-- Workflow pause/resume
-- Human-in-the-loop
-- Fault tolerance
-- Audit trails
 
 ```python
 @dataclass
@@ -153,14 +358,6 @@ class CheckpointData:
 
 ## Error Handling
 
-### Strategy
-
-1. **Per-Node Retry**: AgentNode handles transient failures
-2. **Workflow-Level Error**: Runner catches and emits events
-3. **Checkpoint Recovery**: Resume from last known good state
-
-### Error Types
-
 ```python
 class WorkflowStatus(str, Enum):
     PENDING = "pending"
@@ -171,105 +368,14 @@ class WorkflowStatus(str, Enum):
     CANCELLED = "cancelled"
 ```
 
-## Concurrency
-
-### Thread Safety
-
-- AgentAdapter uses `asyncio.Lock` for status updates
-- CheckpointSaver implementations are thread-safe
-- WorkflowRunner tracks `_is_running` to prevent concurrent runs
-
-### Async Patterns
-
-- All I/O operations are async
-- Event callbacks support both sync and async functions
-- Streaming uses AsyncIterator
-
-## Testing Strategy
-
-### Unit Tests
-
-- Mock adapters for isolated testing
-- Fixture-based setup
-- Async test support with pytest-asyncio
-
-### Integration Tests
-
-- Real LangGraph compilation
-- End-to-end workflow execution
-- Checkpoint save/load verification
-
-### Coverage Areas
-
-1. Adapter interface compliance
-2. Workflow construction
-3. State transitions
-4. Error conditions
-5. Checkpoint recovery
-
 ## Future Extensions
 
 ### Planned Features
 
-1. **Skill System**: Reusable agent capabilities
-2. **CLI Tool**: Command-line workflow management
-3. **Web UI**: Visual workflow editor
-4. **Persistence**: Database-backed checkpoints
-5. **Observability**: OpenTelemetry integration
-
-### Extension Points
-
-- Custom adapters via `AdapterFactory.register()`
-- Custom checkpoint savers via `CheckpointSaver` base class
-- Custom memory stores via `MemoryStore` base class
-- Event callbacks for custom monitoring
-
-## Performance Considerations
-
-### Known Limitations
-
-1. **File Polling**: ClaudeAdapter uses polling for output detection
-   - Mitigation: Consider watchdog/inotify for production
-   
-2. **In-Memory Storage**: Default checkpoint/memory stores
-   - Mitigation: Implement persistent backends
-
-3. **No Parallel Node Execution**: Sequential node execution
-   - Mitigation: Use LangGraph's parallel mapping (future)
-
-### Optimization Opportunities
-
-1. Connection pooling for API adapters
-2. Caching for repeated operations
-3. Lazy loading for heavy dependencies
-4. Streaming for large outputs
-
-## Security
-
-### Best Practices
-
-1. **Secrets Management**: Never hardcode API keys
-2. **Input Validation**: Sanitize agent inputs
-3. **Sandboxing**: Run agents in isolated environments
-4. **Audit Logging**: Track all agent actions
-
-### Current Implementation
-
-- API keys via environment variables
-- No built-in authentication (application responsibility)
-- Workspace isolation via separate directories
-
-## Migration Guide
-
-### From v1.0 to v2.0
-
-ACF v2.0 is a complete rewrite with:
-- New LangGraph-based architecture
-- Different API (adapter-based vs. direct LLM)
-- Async-first interface
-- Better checkpointing
-
-Migration requires rewriting application code.
+1. **CLI Tool**: `acf init`, `acf run`, `acf resume`
+2. **Web UI**: Visual workflow editor
+3. **Persistent Storage**: Postgres/SQLite backends
+4. **Observability**: OpenTelemetry integration
 
 ## References
 
