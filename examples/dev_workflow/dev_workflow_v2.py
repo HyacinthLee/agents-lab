@@ -3,6 +3,8 @@
 基于 LangGraph + ACF-v2 框架 + AGENT.md/Skills 动态提示词
 """
 
+from __future__ import annotations
+
 import asyncio
 import os
 import sys
