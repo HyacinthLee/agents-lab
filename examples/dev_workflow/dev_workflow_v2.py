@@ -13,7 +13,7 @@ from typing import TypedDict, Annotated, Literal, Any, Dict, Optional
 import operator
 
 # 添加 ACF 到路径
-sys.path.insert(0, "/root/.openclaw/workspace/acf-v2/src")
+sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
 from acf import AdapterFactory, AdapterConfig
 from acf.adapter.base import AgentResult, AgentStatus
@@ -29,7 +29,7 @@ from langgraph.graph import StateGraph, START, END
 
 # ==================== 配置 ====================
 
-WORK_DIR = "/root/.openclaw/workspace/acf-v2/examples/dev_workflow/output"
+WORK_DIR = str(Path(__file__).parent / "output")
 BASE_DIR = Path(__file__).parent  # dev_workflow 目录
 AGENTS_DIR = BASE_DIR  # WorkspaceManager 内部会添加 agents/ 子目录
 os.makedirs(WORK_DIR, exist_ok=True)
