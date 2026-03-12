@@ -123,11 +123,11 @@ def save_deliverable(filename: str, content: str) -> str:
 # ==================== Agent 超时配置 ====================
 
 AGENT_TIMEOUTS = {
-    "product_agent": 90,      # 产品 Agent：PRD 相对简单
-    "architect_agent": 180,   # 架构师：设计较复杂
+    "product_agent": 180,     # 产品 Agent：PRD 相对简单（macOS 需要更长时间）
+    "architect_agent": 300,   # 架构师：设计较复杂
     "developer_agent": 300,   # 开发：写代码最耗时
     "tester_agent": 300,      # 测试：生成用例 + 执行
-    "ops_agent": 180,         # 运维：部署脚本
+    "ops_agent": 300,         # 运维：部署脚本
 }
 
 
