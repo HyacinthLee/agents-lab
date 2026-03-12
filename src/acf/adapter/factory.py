@@ -3,6 +3,8 @@
 This module provides a factory for creating adapter instances based on type.
 """
 
+from __future__ import annotations
+
 from typing import Any, Dict, Type
 
 from acf.adapter.base import AgentAdapter, AdapterConfig
